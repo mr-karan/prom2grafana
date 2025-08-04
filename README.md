@@ -12,6 +12,8 @@ A web application that intelligently converts raw Prometheus metrics into produc
 
 ## Demo
 
+🚀 **[Try it live at prom2grafana.mrkaran.dev](https://prom2grafana.mrkaran.dev/)**
+
 ![prom2grafana demo](demo.gif)
 
 ## Installation
