@@ -8,9 +8,6 @@ WORKDIR /app
 # Copy the pre-built binary from GoReleaser
 COPY prom2grafana ./prom2grafana
 
-# Copy environment example
-COPY .env.example ./.env.example
-
 # Make binary executable
 RUN chmod +x ./prom2grafana
 
