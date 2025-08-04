@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>prom2grafana - Prometheus to Grafana Dashboard Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Prometheus → Grafana</h1>
+        <p>Convert metrics to dashboards & alerts</p>
+        <a href="https://github.com/mr-karan/prom2grafana" target="_blank" class="github-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            View on GitHub
+        </a>
+    </header>
+    
+    <main class="app-container">
+        <section class="input-panel">
+            <div class="panel-header">
+                <h2>Prometheus Metrics</h2>
+            </div>
+            <div class="panel-content">
+                <textarea 
+                    id="metrics" 
+                    placeholder="# HELP node_cpu_seconds_total Seconds the CPUs spent in each mode.
+# TYPE node_cpu_seconds_total counter
+node_cpu_seconds_total{cpu=&quot;0&quot;,mode=&quot;idle&quot;} 425836.82
+node_cpu_seconds_total{cpu=&quot;0&quot;,mode=&quot;iowait&quot;} 52.34"
+                    spellcheck="false"
+                ></textarea>
+                <button id="convertBtn" onclick="convertMetrics()">
+                    <span id="btnText">Generate Dashboard</span>
+                    <span id="loader" class="btn-loader" style="display: none;">
+                        <span class="spinner-small"></span>
+                        <span id="loadingText">Generating...</span>
+                    </span>
+                </button>
+            </div>
+        </section>
+        
+        <section class="output-panel" id="outputPanel">
+            <div class="panel-header">
+                <h2>Results</h2>
+            </div>
+            
+            <div id="emptyState" class="empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="9" y1="9" x2="15" y2="9"></line>
+                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                    <line x1="9" y1="17" x2="11" y2="17"></line>
+                </svg>
+                <p>Paste metrics and click generate</p>
+            </div>
+            
+            <div id="results" class="results" style="display: none;">
+                <div class="result-section dashboard-section">
+                    <div class="section-header">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="14" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="15" y2="21"></line>
+                            </svg>
+                            Grafana Dashboard
+                        </h3>
+                        <span class="badge" id="dashboardStatus">Ready</span>
+                    </div>
+                    <div class="section-content">
+                        <p class="section-description">
+                            Import-ready dashboard with panels for all detected metrics
+                        </p>
+                        <div class="action-buttons">
+                            <button class="action-btn primary" onclick="copyDashboard()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy JSON
+                            </button>
+                            <button class="action-btn secondary" onclick="downloadDashboard()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-section alerts-section">
+                    <div class="section-header">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            Prometheus Alerts
+                        </h3>
+                        <span class="badge" id="alertsCount">0 rules</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="alerts-list" id="alertsList"></div>
+                        <div class="yaml-section" id="yamlSection" style="display: none;">
+                            <div class="yaml-header">
+                                <span class="yaml-label">Alert Rules YAML</span>
+                                <button class="action-btn secondary small" onclick="toggleYamlView()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                    Hide
+                                </button>
+                            </div>
+                            <pre id="alertsYaml" class="alerts-yaml"></pre>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn primary" onclick="copyAlerts()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy YAML
+                            </button>
+                            <button class="action-btn secondary" onclick="toggleYamlView()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                                <span id="viewToggleText">View YAML</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <div id="error" class="error-toast" style="display: none;"></div>
+    
+    <script>
+        let dashboardData = null;
+        let alertsData = null;
+        let loadingInterval = null;
+        
+        const loadingMessages = [
+            "Analyzing your metrics...",
+            "Generating dashboard panels...",
+            "Creating alert rules...",
+            "Optimizing visualizations...",
+            "Finalizing configurations..."
+        ];
+        
+        function startLoadingMessages() {
+            let messageIndex = 0;
+            const loadingText = document.getElementById('loadingText');
+            loadingText.textContent = loadingMessages[0];
+            
+            loadingInterval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                loadingText.textContent = loadingMessages[messageIndex];
+            }, 2000);
+        }
+        
+        function stopLoadingMessages() {
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+                loadingInterval = null;
+            }
+        }
+        
+        async function convertMetrics() {
+            const metrics = document.getElementById('metrics').value.trim();
+            const convertBtn = document.getElementById('convertBtn');
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            const error = document.getElementById('error');
+            const emptyState = document.getElementById('emptyState');
+            const results = document.getElementById('results');
+            
+            if (!metrics) {
+                showError('Please paste some Prometheus metrics');
+                return;
+            }
+            
+            // Reset state
+            error.style.display = 'none';
+            convertBtn.disabled = true;
+            btnText.style.display = 'none';
+            loader.style.display = 'inline-flex';
+            
+            // Start loading message rotation
+            startLoadingMessages();
+            
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ metrics }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Conversion failed');
+                }
+                
+                // Store the data
+                dashboardData = data.grafana_dashboard;
+                alertsData = data.prometheus_alerts;
+                
+                // Update UI
+                emptyState.style.display = 'none';
+                results.style.display = 'block';
+                
+                // Parse and display alerts preview
+                displayAlertsPreview(alertsData);
+                
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                convertBtn.disabled = false;
+                btnText.style.display = 'inline';
+                loader.style.display = 'none';
+                stopLoadingMessages();
+            }
+        }
+        
+        function displayAlertsPreview(yamlContent) {
+            const alertsList = document.getElementById('alertsList');
+            const alertsYaml = document.getElementById('alertsYaml');
+            const alertsCount = document.getElementById('alertsCount');
+            
+            // Store full YAML for viewing
+            alertsYaml.textContent = yamlContent;
+            
+            // Parse YAML to show preview (improved parsing)
+            const lines = yamlContent.split('\n');
+            const alerts = [];
+            let currentAlert = null;
+            let inAnnotations = false;
+            let inLabels = false;
+            
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                
+                if (trimmedLine.startsWith('- alert:')) {
+                    if (currentAlert) alerts.push(currentAlert);
+                    currentAlert = {
+                        name: trimmedLine.replace('- alert:', '').trim(),
+                        expr: '',
+                        duration: '',
+                        severity: 'warning',
+                        summary: '',
+                        description: ''
+                    };
+                    inAnnotations = false;
+                    inLabels = false;
+                } else if (currentAlert) {
+                    if (trimmedLine.startsWith('expr:')) {
+                        currentAlert.expr = trimmedLine.replace('expr:', '').trim();
+                    } else if (trimmedLine.startsWith('for:')) {
+                        currentAlert.duration = trimmedLine.replace('for:', '').trim();
+                    } else if (trimmedLine === 'annotations:') {
+                        inAnnotations = true;
+                        inLabels = false;
+                    } else if (trimmedLine === 'labels:') {
+                        inLabels = true;
+                        inAnnotations = false;
+                    } else if (inAnnotations) {
+                        if (trimmedLine.startsWith('summary:')) {
+                            currentAlert.summary = trimmedLine.replace('summary:', '').trim().replace(/["']/g, '');
+                        } else if (trimmedLine.startsWith('description:')) {
+                            currentAlert.description = trimmedLine.replace('description:', '').trim().replace(/["']/g, '');
+                        }
+                    } else if (inLabels) {
+                        if (trimmedLine.startsWith('severity:')) {
+                            currentAlert.severity = trimmedLine.replace('severity:', '').trim();
+                        }
+                    }
+                }
+            });
+            if (currentAlert) alerts.push(currentAlert);
+            
+            // Update count
+            alertsCount.textContent = `${alerts.length} ${alerts.length === 1 ? 'rule' : 'rules'}`;
+            
+            // Display all alerts as cards
+            alertsList.innerHTML = alerts.map((alert, index) => `
+                <div class="alert-card">
+                    <div class="alert-card-header">
+                        <div class="alert-title-group">
+                            <h4 class="alert-name">${alert.name}</h4>
+                            <span class="alert-severity severity-${alert.severity}">
+                                ${getSeverityIcon(alert.severity)}
+                                ${alert.severity}
+                            </span>
+                        </div>
+                        ${alert.duration ? `<span class="alert-duration">For: ${alert.duration}</span>` : ''}
+                    </div>
+                    <div class="alert-card-body">
+                        ${alert.summary ? `<p class="alert-summary">${alert.summary}</p>` : ''}
+                        ${alert.expr ? `<div class="alert-expr"><code>${alert.expr}</code></div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<div class="no-alerts">No alert rules generated</div>';
+            }
+        }
+        
+        function getSeverityIcon(severity) {
+            const icons = {
+                critical: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 20 2 20"></polygon><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+                warning: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+                info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+            };
+            return icons[severity] || icons.warning;
+        }
+        
+        function toggleYamlView() {
+            const yamlSection = document.getElementById('yamlSection');
+            const alertsList = document.getElementById('alertsList');
+            const toggleText = document.getElementById('viewToggleText');
+            
+            if (yamlSection.style.display === 'none') {
+                yamlSection.style.display = 'block';
+                alertsList.style.display = 'none';
+                toggleText.textContent = 'View Alerts';
+            } else {
+                yamlSection.style.display = 'none';
+                alertsList.style.display = 'block';
+                toggleText.textContent = 'View YAML';
+            }
+        }
+        
+        function copyDashboard() {
+            if (!dashboardData) return;
+            
+            // Parse and stringify to ensure proper formatting
+            try {
+                const dashboardJson = JSON.parse(dashboardData);
+                const formattedJson = JSON.stringify(dashboardJson, null, 2);
+                copyToClipboard(formattedJson, event.target.closest('button'));
+            } catch (e) {
+                copyToClipboard(dashboardData, event.target.closest('button'));
+            }
+        }
+        
+        function downloadDashboard() {
+            if (!dashboardData) return;
+            
+            try {
+                const dashboardJson = JSON.parse(dashboardData);
+                const formattedJson = JSON.stringify(dashboardJson, null, 2);
+                const blob = new Blob([formattedJson], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'grafana-dashboard.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                showError('Failed to download dashboard');
+            }
+        }
+        
+        function copyAlerts() {
+            if (!alertsData) return;
+            copyToClipboard(alertsData, event.target.closest('button'));
+        }
+        
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Copied!
+                `;
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                showError('Failed to copy to clipboard');
+            });
+        }
+        
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+            setTimeout(() => {
+                error.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Allow Ctrl/Cmd + Enter to submit
+        document.getElementById('metrics').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                convertMetrics();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (uncomment to ignore vendor directory)
+# vendor/
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# Editor-specific files
+*~
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+grafana-dashboard-gen
+dist/
+build/
+
+# Go workspace file
+go.work
+
+# Air live reload
+.air.toml
+tmp/
+
+# Coverage files
+coverage.txt
+coverage.html
+*.cover
+
+# Profiling data
+*.prof
+*.pprof
+
+# Debug files
+debug
+__debug_bin
