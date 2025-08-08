@@ -41,9 +41,12 @@ go build -o prom2grafana
 
 ## Usage
 
-1. Set your OpenRouter API key:
+1. Set your OpenRouter API key and configure models:
    ```bash
    export OPENAI_API_KEY=your_openrouter_api_key
+   
+   # Optional: Configure model fallback for better reliability
+   export OPENAI_MODELS="google/gemini-2.5-flash,openai/gpt-4o,anthropic/claude-3-5-sonnet"
    ```
 
 2. Run the server:
@@ -57,13 +60,34 @@ go build -o prom2grafana
 
 5. Copy the generated Grafana dashboard JSON and import it into Grafana
 
+### Model Fallback
+The application automatically tries multiple models in order if configured. If the first model fails (rate limits, errors, etc.), it will automatically try the next model in the list, providing better reliability and success rates.
+
 ## Configuration
 
 The application can be configured using environment variables:
 
+### Basic Configuration
 - `OPENAI_API_KEY` - Your OpenRouter API key (required)
 - `PORT` - Server port (default: 8080)
 - `LOG_LEVEL` - Log level: debug, info, warn, error (default: info)
+
+### Model Configuration
+- `OPENAI_MODEL` - Single model to use (default: "google/gemini-2.5-flash")
+- `OPENAI_MODELS` - Comma-separated list of models to try with fallback (overrides OPENAI_MODEL)
+- `OPENAI_API_URL` - API URL (default: "https://openrouter.ai/api/v1")
+
+### Model Fallback Examples
+```bash
+# Use single model (backward compatible)
+export OPENAI_MODEL="google/gemini-2.5-flash"
+
+# Use multiple models with fallback (recommended)
+export OPENAI_MODELS="google/gemini-2.5-flash,openai/gpt-4o,anthropic/claude-3-5-sonnet"
+
+# Cost-optimized fallback (cheapest first)
+export OPENAI_MODELS="google/gemini-2.0-flash-thinking-exp,google/gemini-2.5-flash,openai/gpt-4o-mini"
+```
 
 ## Example Input
 
